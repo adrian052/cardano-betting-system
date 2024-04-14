@@ -2,7 +2,7 @@ import { lucid } from "../instance-lucid.ts";
 import { Constr, Data, applyParamsToScript, fromText } from "../lucid/mod.ts";
 import { SpendingValidator } from "../lucid/mod.ts";
 import { PrivateKey } from "../lucid/src/core/libs/cardano_multiplatform_lib/cardano_multiplatform_lib.generated.js";
-import { MatchStatus } from '../MatchStatus.ts';
+import { Waiting, Fighter1, Fighter2 } from '../MatchStatus.ts';
 
 
 //Get the argument from args
@@ -14,11 +14,11 @@ if (Deno.args.length != 1) {
 const winner = Deno.args[0];
 var match_status;
 if (winner == "1") {
-    match_status = MatchStatus.Fighter1;
+    match_status = Fighter1;
 }else if (winner == "2"){
-    match_status = MatchStatus.Fighter2
+    match_status = Fighter2
 }else if (winner == "0"){
-    match_status = MatchStatus.Waiting;
+    match_status = Waiting;
 }else{
     console.log("Please insert a number between 0 and 2.");
     Deno.exit()
@@ -84,7 +84,7 @@ const tx = await lucid
     .newTx()
     .collectFrom([oracleUTxO],Data.to(updateRedemer))
     .attachSpendingValidator(validator)
-    .payToContract(oracle_addr, Data.to(BigInt(match_status)),{[token]:1n})
+    .payToContract(oracle_addr, {inline: Data.to(match_status)},{[token]:1n})
     .addSigner(owner_address)
     .complete()
 

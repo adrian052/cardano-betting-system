@@ -6,6 +6,7 @@ use aiken/transaction.{
 }
 use aiken/transaction/credential.{ScriptCredential, VerificationKey}
 use aiken/transaction/value.{AssetName, PolicyId}
+use utils.{Winner}
 
 type AssetClass {
   policy_id: PolicyId,
@@ -26,11 +27,7 @@ type OracleRedeemer {
 }
 
 validator(params: OracleParams) {
-  fn oracle(
-    _datum: Int,
-    redeemer: OracleRedeemer,
-    ctx: ScriptContext,
-  ) -> Bool {
+  fn oracle(_datum: Int, redeemer: OracleRedeemer, ctx: ScriptContext) -> Bool {
     when ctx.purpose is {
       Spend(this_script_output_reference) -> {
         let is_signed_by_operator =
@@ -74,11 +71,11 @@ validator(params: OracleParams) {
                 DatumHash(dh) -> {
                   expect Some(d) =
                     find_datum([oracle_output], ctx.transaction.datums, dh)
-                  expect _rate: Int = d
+                  expect _rate: Option<Winner> = d
                   True
                 }
                 InlineDatum(d) -> {
-                  expect _rate: Int = d
+                  expect _rate: Option<Winner> = d
                   True
                 }
               }

@@ -2,7 +2,7 @@ import { lucid } from "../instance-lucid.ts";
 import { Constr, Data, applyParamsToScript, fromText } from "../lucid/mod.ts";
 import { SpendingValidator } from "../lucid/mod.ts";
 import { PrivateKey } from "../lucid/src/core/libs/cardano_multiplatform_lib/cardano_multiplatform_lib.generated.js";
-import { MatchStatus } from '../MatchStatus.ts';
+import { Waiting, Fighter1, Fighter2 } from '../MatchStatus.ts';
 
 
 
@@ -78,14 +78,14 @@ const oracle_addr = lucid.utils.validatorToAddress(validator);
 console.log("Oracle address: ",oracle_addr);
 
 
-const match_status = MatchStatus.Waiting
+const match_status = Waiting
 
 const tx = await lucid
     .newTx()
     .mintAssets({[token]:1n},Data.void())
     .collectFrom([utxo])
     .attachMintingPolicy(policy)
-    .payToContract(oracle_addr, {inline: Data.to(BigInt(match_status))}, {[token]:1n})
+    .payToContract(oracle_addr, {inline: Data.to(match_status)}, {[token]:1n})
     .complete();
 const signedTx = await tx.sign().complete();
 

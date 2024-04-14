@@ -1,8 +1,8 @@
 import { lucid } from "../instance-lucid.ts";
 import { Constr, Data, applyParamsToScript, fromText } from "../lucid/mod.ts";
 import { SpendingValidator } from "../lucid/mod.ts";
-import { PrivateKey } from "../lucid/src/core/libs/cardano_multiplatform_lib/cardano_multiplatform_lib.generated.js";
-import { MatchStatus } from '../MatchStatus.ts';
+
+
 
 import file from "../../data/match_params.json" with { type: "json" };
 
@@ -39,5 +39,14 @@ if (oracleUTxO == undefined ){
     Deno.exit();
 }
 
-console.log("Data in oracle: " + await lucid.datumOf(oracleUTxO))
-
+const datum: Constr<Constr<unknown>> = await lucid.datumOf(oracleUTxO) as Constr<Constr<unknown>>;
+if(datum.index == 0){
+  console.log("Datum: ");
+  if(datum.fields[0].index == 0){
+    console.log("Fighter1");
+  }else{
+    console.log("Fighter2");
+  }
+}else{
+  console.log("Datum: Waiting")
+}
