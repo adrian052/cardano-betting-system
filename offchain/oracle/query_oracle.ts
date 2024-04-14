@@ -6,7 +6,6 @@ import { MatchStatus } from '../MatchStatus.ts';
 
 import file from "../../data/match_params.json" with { type: "json" };
 
-const owner = file.Owner;
 const posixtime = file.PosixTime;
 const fighter1 = file.Figther1; 
 const fighter2 = file.Figther2;
