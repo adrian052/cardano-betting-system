@@ -37,6 +37,43 @@
       "hash": "1cb10adbf09a6fc3754da21d5622d58037b804e9376f05786af7e625"
     },
     {
+      "title": "mint_bet.mint_bet",
+      "redeemer": {
+        "title": "_r",
+        "schema": {
+          "$ref": "#/definitions/Void"
+        }
+      },
+      "parameters": [
+        {
+          "title": "utxo_ref",
+          "schema": {
+            "$ref": "#/definitions/aiken~1transaction~1OutputReference"
+          }
+        },
+        {
+          "title": "token_name",
+          "schema": {
+            "$ref": "#/definitions/ByteArray"
+          }
+        },
+        {
+          "title": "betting_address",
+          "schema": {
+            "$ref": "#/definitions/ByteArray"
+          }
+        },
+        {
+          "title": "validator_posixtime",
+          "schema": {
+            "$ref": "#/definitions/Int"
+          }
+        }
+      ],
+      "compiledCode": "5903c2010000323232323232323232223223223222533300c3232533300e3370e9000180680089919191919191919191919191919299980f98110010991919191919192999813181480109929998122999812299981200088028a5013370e90010038a5013371e01003e2940c8c94ccc094cdc3a4000002294054ccc094cdc3a400400229404c8c8c8c8c8c94ccc0accdc3a400460540022646464a66605ca66605c66e240180084cdc48010128a5013370e00200a2940c8c8c8c94ccc0c4cdc3a40040022900009bad3036302f002302f0013253330303370e90010008a6103d87a8000132323300100100222533303600114c103d87a800013232323253330373371e9110000213374a90001981d9ba80014bd700998030030019bad3038003375c606c004607400460700026eacc0d4c0b8008c0b8004cc0540052201003756604260560166eb4c0c4004c0a400458c030c0a0c078c0a0c0bcc0c0c0c0c0c0c0c0c0c0c0c0c0c0c0a0c030c0a007cdd6980e98138019bad302d302e302e302e30260023253330283370e9000000899191919191919192999819981b00109924c64a66606266e1d200000115333034302f00814985854ccc0c4cdc3a40040022a666068605e0102930b0b18178038b1bad30340013034002375c606400260640046eb4c0c0004c0c0008c0b8004c09800858c098004c0ac004c08c008c08c004c00cc08400458c09c004c8c8cc004004008894ccc09c00452f5c026464a66604c6464a66605066e1d200200113371e0426eb8c0b4c0980085281813000980418121804181200109981500119802002000899802002000981580118148009bac3001301f3003301f0162302630273027001323300100100d22533302400114a026464a66604666ebcc014c08400808052889980200200098140011813000918120009bad301f002375c603a0022c6040002646464a66603a66e1d200200114bd6f7b63009bab3022301b002301b0013300200100c323300100100322533301f00114bd6f7b630099191919299981019b8f489000021003133024337606ea4008dd3000998030030019bab3021003375c603e0046046004604200244646600200200644a6660400022980103d87a800013232323253330213371e00e004266e95200033025374c00297ae0133006006003375660440066eb8c080008c090008c088004dd5980e800980e800980e000980d800980d0011bac301800130100013016001300e005375c602800260180022c6002601600446024602600229309b2b1bad001375c0026eb80048c014dd5000918019baa0015734aae7555cf2ab9f5740ae855d101",
+      "hash": "1213c03319a38407cda996ff992c02a1a57b7047bf355ee8372c9c2c"
+    },
+    {
       "title": "nft.nft_policy",
       "redeemer": {
         "title": "redeemer",
@@ -66,7 +103,7 @@
       "datum": {
         "title": "_datum",
         "schema": {
-          "$ref": "#/definitions/Option$utils~1Winner"
+          "$ref": "#/definitions/Int"
         }
       },
       "redeemer": {
@@ -98,31 +135,19 @@
     "Int": {
       "dataType": "integer"
     },
-    "Option$utils/Winner": {
-      "title": "Optional",
+    "String": {
+      "dataType": "#string"
+    },
+    "Void": {
+      "title": "Unit",
+      "description": "The nullary constructor.",
       "anyOf": [
         {
-          "title": "Some",
-          "description": "An optional value.",
           "dataType": "constructor",
           "index": 0,
-          "fields": [
-            {
-              "$ref": "#/definitions/utils~1Winner"
-            }
-          ]
-        },
-        {
-          "title": "None",
-          "description": "Nothing.",
-          "dataType": "constructor",
-          "index": 1,
           "fields": []
         }
       ]
-    },
-    "String": {
-      "dataType": "#string"
     },
     "aiken/transaction/OutputReference": {
       "title": "OutputReference",

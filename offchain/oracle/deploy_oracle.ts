@@ -2,7 +2,7 @@ import { lucid } from "../instance-lucid.ts";
 import { Constr, Data, applyParamsToScript, fromText } from "../lucid/mod.ts";
 import { SpendingValidator } from "../lucid/mod.ts";
 import { PrivateKey } from "../lucid/src/core/libs/cardano_multiplatform_lib/cardano_multiplatform_lib.generated.js";
-import { Waiting, Fighter1, Fighter2 } from '../MatchStatus.ts';
+import { Waiting} from '../MatchStatus.ts';
 
 
 

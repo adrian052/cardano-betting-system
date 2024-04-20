@@ -7,3 +7,5 @@ docs/
 
 .devcontainer/.env
 data/match_params.json
+
+/assets
