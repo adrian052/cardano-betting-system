@@ -1,81 +1,51 @@
 import { lucid } from "../instance-lucid.ts";
-import { Constr, Data, MintingPolicy, applyParamsToScript, fromText, networkToId } from "../lucid/mod.ts";
-import { SpendingValidator } from "../lucid/mod.ts";
+import { getUTXO, getUserAddress,getOutRef, getPolicy, getDatum, mintNFTAndPay } from "../lib/utils.ts";
+import { Constr, fromText } from "../lucid/mod.ts";
 import { PrivateKey } from "../lucid/src/core/libs/cardano_multiplatform_lib/cardano_multiplatform_lib.generated.js";
 
-///Get the user address
-const gamblerPK = await Deno.readTextFile("./assets/bob-pk");
-lucid.selectWalletFromPrivateKey(gamblerPK);
-const gambler_address = await lucid.wallet.address();
-const priv = PrivateKey.from_bech32(gamblerPK);
-const gambler_pkh = priv.to_public().hash().to_hex();
-
-console.log("Gambler address: "+gambler_address);
-const now = Date.now()
-//Getting the utxo to create the nft
-const utxos = await lucid.utxosAt(gambler_address);
-const utxo = utxos[0];
-console.log("UTXO: ",utxo);
-
-//geting outRef from UTxO
-const outRef = new Constr(0, [
-    new Constr(0, [utxo.txHash]),
-    BigInt(utxo.outputIndex)
-]);
 
 
-//Asset name 
-const assetName = "Token1"
+async function main() {
+    //Getting gambler information
+    const { privateKey, gambler_address } = await getUserAddress("./assets/bob-pk");
+    const gambler_priv = PrivateKey.from_bech32(privateKey);
+    const gambler_pkh = gambler_priv.to_public().hash().to_hex();
+    console.log("Gambler address: " + gambler_address);
 
-//Get the betting validator address
-const matchParams = 
-  new Constr(0, [fromText("Canelo"),fromText("GGG"), BigInt(9999999999999)]);   
+    //Getting utxo information
+    const utxo = await getUTXO(gambler_address);
+    const outRef = getOutRef(utxo);
+    console.log("UTXO: ", utxo);
 
-const plutusJSON = JSON.parse(await Deno.readTextFile("plutus.json"));
-const policy: SpendingValidator = {
-  type: "PlutusV2",
-  script:applyParamsToScript(
-    plutusJSON.validators.filter((val: any) => val.title == "betting.betting")[0].compiledCode,[matchParams]
-  ) 
+    //Set some params
+    const now = Date.now();
+    const assetName = "Token1";
+    const plutusJSON = JSON.parse(await Deno.readTextFile("plutus.json"));
+
+    //Get validator variables
+    const validator_params = [new Constr(0, [fromText("Canelo"), fromText("GGG"), BigInt(9999999999999)])];
+    const validator = getPolicy(plutusJSON, validator_params,"betting.betting");
+    const validator_address = lucid.utils.validatorToAddress(validator);
+    const validator_pkh = lucid.utils.validatorToScriptHash(validator);
+    console.log("Validator address: ", validator_address);
+
+    //Get mint variables
+    const mint_params = [outRef, fromText(assetName), validator_pkh, BigInt(now + 100001)]
+    const minting_policy = getPolicy(plutusJSON, mint_params, "mint_bet.mint_bet");
+    const minting_address = lucid.utils.validatorToAddress(minting_policy);
+    const minting_policy_id = lucid.utils.mintingPolicyToId(minting_policy);
+    console.log("Minting address: ", minting_address);
+
+    //Making the datum
+    const datum = getDatum(new Constr(0, []), 2000000,gambler_pkh, now);
+
+    //Nft information
+    const nft_name = fromText(assetName);
+    const token = minting_policy_id + nft_name;
+
+    //Make transaction
+    const txId = await mintNFTAndPay(utxo, minting_policy, token, datum, validator_address, now + 100000,2000000);
+    console.log("Transactions submitted with id: ", txId);
 }
 
-const validator_address = lucid.utils.validatorToAddress(policy);
-const pkh = lucid.utils.validatorToScriptHash(policy)
-console.log("Validator address: ", validator_address);
-
-///Getting minting policy
-const minting_policy: SpendingValidator = {
-    type: "PlutusV2",
-    script:applyParamsToScript(
-      plutusJSON.validators.filter((val: any) => val.title == "mint_bet.mint_bet")[0].compiledCode,[outRef,fromText(assetName),pkh, BigInt(now+100001)]
-    ) 
-  }
-
-const minting_address = lucid.utils.validatorToAddress(minting_policy);
-console.log("Minting address: ", minting_address);
-
-//Datum:
-const fighter1 = new Constr(0,[]);
-
-const datum = new Constr(0,[fighter1,BigInt(1500000),gambler_pkh,BigInt(now)])
-
-//Token
-const minting_policy_id = lucid.utils.mintingPolicyToId(minting_policy);
-const nft_name = fromText(assetName)
-const token = minting_policy_id + nft_name
-
-
-const tx = await lucid
-    .newTx()
-    .mintAssets({[token]:1n},Data.void())
-    .collectFrom([utxo])
-    .attachMintingPolicy(minting_policy)
-    .payToContract(validator_address, {inline: Data.to(datum)}, {[token]:1n,lovelace:1500000n})
-    .validTo(now+100000)
-    .complete();
-    
-const signedTx = await tx.sign().complete();
-
-const txId = await signedTx.submit();
-
-console.log("Transactions submited with id: ", txId);
+main();
