@@ -1,5 +1,5 @@
 import { lucid } from "../instance-lucid.ts";
-import { Constr, Data, UTxO, applyParamsToScript } from "../lucid/mod.ts";
+import { Constr, Data, UTxO, applyParamsToScript, fromText } from "../lucid/mod.ts";
 import { SpendingValidator } from "../lucid/mod.ts";
 
 
@@ -21,6 +21,10 @@ function getOutRef(utxo: UTxO) {
     return new Constr(0, [new Constr(0, [utxo.txHash]), BigInt(utxo.outputIndex)]);
 }
 
+function getPolicyParams( fighter1: string, fighter2:string,deadline:number, assetName: string){
+    return [new Constr(0, [fromText(fighter1),fromText(fighter2),BigInt(deadline)]),fromText(assetName)]
+}
+
 function getPolicy(plutusJSON : any, params : any, title: string) {
     const policy: SpendingValidator = {
         type: "PlutusV2",
@@ -33,13 +37,13 @@ function getDatum(fighter:Constr<any>,bet:number ,gambler_pkh:string, validity:n
     return new Constr(0, [fighter, BigInt(bet), gambler_pkh, BigInt(validity)]);
 }
 
-async function mintNFTAndPay(utxo:UTxO, minting_policy:any, token:string, datum:Constr<any>, validator_address:string, validTo:number, bet:number) {
+async function mintNFTAndPay(utxos:UTxO[], minting_policy:any, token:string, datum:Constr<any>, minting_address:string, validTo:number, bet:number) {
     const tx = await lucid
         .newTx()
         .mintAssets({ [token]: 1n }, Data.void())
-        .collectFrom([utxo])
+        .collectFrom(utxos)
         .attachMintingPolicy(minting_policy)
-        .payToContract(validator_address, { inline: Data.to(datum) }, { [token]: 1n, lovelace: BigInt(bet)})
+        .payToContract(minting_address, { inline: Data.to(datum) }, { [token]: 1n, lovelace: BigInt(bet)})
         .validTo(validTo)
         .complete();
 
@@ -47,4 +51,4 @@ async function mintNFTAndPay(utxo:UTxO, minting_policy:any, token:string, datum:
     return await signedTx.submit();
 }
 
-export { getUserAddress, getUTXO, getOutRef, getPolicy, getDatum, mintNFTAndPay};
+export { getUserAddress, getUTXO, getOutRef, getPolicy, getDatum, mintNFTAndPay,getPolicyParams};

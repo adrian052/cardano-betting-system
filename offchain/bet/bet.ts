@@ -1,5 +1,6 @@
 import { lucid } from "../instance-lucid.ts";
-import { getUTXO, getUserAddress,getOutRef, getPolicy, getDatum, mintNFTAndPay } from "../lib/utils.ts";
+import { getPolicyParams } from "../lib/utils.ts";
+import {getUserAddress,getPolicy, getDatum, mintNFTAndPay } from "../lib/utils.ts";
 import { Constr, fromText } from "../lucid/mod.ts";
 import { PrivateKey } from "../lucid/src/core/libs/cardano_multiplatform_lib/cardano_multiplatform_lib.generated.js";
 
@@ -13,24 +14,16 @@ async function main() {
     console.log("Gambler address: " + gambler_address);
 
     //Getting utxo information
-    const utxo = await getUTXO(gambler_address);
-    const outRef = getOutRef(utxo);
-    console.log("UTXO: ", utxo);
-
+    const utxos = await lucid.utxosAt(gambler_address);
+    
     //Set some params
     const now = Date.now();
     const assetName = "Token1";
     const plutusJSON = JSON.parse(await Deno.readTextFile("plutus.json"));
 
-    //Get validator variables
-    const validator_params = [new Constr(0, [fromText("Canelo"), fromText("GGG"), BigInt(9999999999999)])];
-    const validator = getPolicy(plutusJSON, validator_params,"betting.betting");
-    const validator_address = lucid.utils.validatorToAddress(validator);
-    const validator_pkh = lucid.utils.validatorToScriptHash(validator);
-    console.log("Validator address: ", validator_address);
-
+    const match_posixtime= 1714443139000
     //Get mint variables
-    const mint_params = [outRef, fromText(assetName), validator_pkh, BigInt(now + 100001)]
+    const mint_params = getPolicyParams("Canelo","GGG",match_posixtime, assetName);
     const minting_policy = getPolicy(plutusJSON, mint_params, "mint_bet.mint_bet");
     const minting_address = lucid.utils.validatorToAddress(minting_policy);
     const minting_policy_id = lucid.utils.mintingPolicyToId(minting_policy);
@@ -43,8 +36,14 @@ async function main() {
     const nft_name = fromText(assetName);
     const token = minting_policy_id + nft_name;
 
+    //time 
+    console.log("Now: ",now)
+    const txValidTo = now+100000
+    console.log("Tx valid to: ", txValidTo);
+    console.log("Match posixtime: ",match_posixtime);
+    
     //Make transaction
-    const txId = await mintNFTAndPay(utxo, minting_policy, token, datum, validator_address, now + 100000,2000000);
+    const txId = await mintNFTAndPay(utxos,minting_policy, token, datum, minting_address, txValidTo,2000000);
     console.log("Transactions submitted with id: ", txId);
 }
 
