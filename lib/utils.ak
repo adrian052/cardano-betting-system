@@ -9,7 +9,8 @@ use aiken/transaction.{
   ValidityRange,
 }
 use aiken/transaction/credential.{
-  VerificationKey, VerificationKeyCredential, from_verification_key,
+  ScriptCredential, VerificationKey, VerificationKeyCredential,
+  from_verification_key,
 }
 use aiken/transaction/value.{from_asset, from_lovelace, lovelace_of}
 
@@ -37,8 +38,7 @@ pub fn split_correctly(
     outputs,
     True,
     fn(output, acc) {
-      expect VerificationKeyCredential(output_hash) =
-        output.address.payment_credential
+      expect ScriptCredential(output_hash) = output.address.payment_credential
       let reward = lovelace_of(output.value)
       expect Some(expected_reward) = dict.get(expected_output, output_hash)
       acc && expected_reward == reward

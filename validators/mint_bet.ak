@@ -1,16 +1,19 @@
 use aiken/dict.{to_list}
 use aiken/hash.{Blake2b_224, Hash}
 use aiken/interval.{Finite}
-use aiken/list.{find}
+use aiken/list.{filter, find, foldl, has, length, map}
 use aiken/time.{PosixTime}
 use aiken/transaction.{
-  DatumHash, InlineDatum, Mint, NoDatum, ScriptContext, Transaction,
+  DatumHash, InlineDatum, Input, Mint, NoDatum, ScriptContext, Spend,
+  Transaction,
 }
-use aiken/transaction/credential.{ScriptCredential, VerificationKey}
+use aiken/transaction/credential.{
+  Script, ScriptCredential, VerificationKey, from_script,
+}
 use aiken/transaction/value.{
   AssetName, from_minted_value, lovelace_of, policies, tokens,
 }
-use utils.{Winner}
+use utils.{Winner, after_deadline}
 
 type PKH =
   Hash<Blake2b_224, VerificationKey>
@@ -19,7 +22,6 @@ type MintDatum {
   winner: Winner,
   bet: Int,
   address: PKH,
-  posixtime: PosixTime,
 }
 
 type MatchParams {
@@ -28,10 +30,16 @@ type MatchParams {
   deadline: PosixTime,
 }
 
-validator(match_params: MatchParams, token_name: AssetName) {
-  fn mint_bet(_r: Void, ctx: ScriptContext) {
+validator(
+  match_params: MatchParams,
+  token_name: AssetName,
+  oracle_validator: Hash<Blake2b_224, Script>,
+) {
+  fn mint_bet(_d: Void, _r: Void, ctx: ScriptContext) {
     when ctx.purpose is {
       Mint(policy_id) -> validate_mint(ctx, policy_id, match_params, token_name)
+      Spend(_) ->
+        after_deadline(ctx.transaction.validity_range, match_params.deadline)
       _ -> False
     }
   }
@@ -69,12 +77,11 @@ fn validate_mint(
       DatumHash(_) -> False
       InlineDatum(d) -> {
         expect datum: MintDatum = d
-        let posixtime = datum.posixtime
         let datum_bet = datum.bet
         expect Finite(upper_bound) =
           ctx.transaction.validity_range.upper_bound.bound_type
         let tx_bet = lovelace_of(betting_output.value)
-        posixtime <= upper_bound && upper_bound <= match_params.deadline && tx_bet == datum_bet
+        upper_bound <= match_params.deadline && tx_bet == datum_bet
       }
     }
   is_valid_output_datum && (1 == amount)? && (asset_name == token_name)?

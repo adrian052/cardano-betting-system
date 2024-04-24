@@ -6,6 +6,6 @@ build/
 docs/
 
 .devcontainer/.env
-data/match_params.json
+data/
 
 /assets

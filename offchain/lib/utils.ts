@@ -21,8 +21,8 @@ function getOutRef(utxo: UTxO) {
     return new Constr(0, [new Constr(0, [utxo.txHash]), BigInt(utxo.outputIndex)]);
 }
 
-function getPolicyParams( fighter1: string, fighter2:string,deadline:number, assetName: string){
-    return [new Constr(0, [fromText(fighter1),fromText(fighter2),BigInt(deadline)]),fromText(assetName)]
+function getPolicyParams( fighter1: string, fighter2:string,deadline:number, assetName: string,oracle_pkh:string){
+    return [new Constr(0, [fromText(fighter1),fromText(fighter2),BigInt(deadline)]),fromText(assetName),fromText(oracle_pkh)]
 }
 
 function getPolicy(plutusJSON : any, params : any, title: string) {
@@ -33,8 +33,8 @@ function getPolicy(plutusJSON : any, params : any, title: string) {
     return policy;
 }
 
-function getDatum(fighter:Constr<any>,bet:number ,gambler_pkh:string, validity:number) {
-    return new Constr(0, [fighter, BigInt(bet), gambler_pkh, BigInt(validity)]);
+function getDatum(fighter:Constr<any>,bet:number ,gambler_pkh:string) {
+    return new Constr(0, [fighter, BigInt(bet), gambler_pkh]);
 }
 
 async function mintNFTAndPay(utxos:UTxO[], minting_policy:any, token:string, datum:Constr<any>, minting_address:string, validTo:number, bet:number) {

@@ -56,7 +56,7 @@ const parameters_json = {
     public_key_hash: pkh
 }
 
-await Deno.writeTextFile("data/"+asset_name+".json", JSON.stringify(parameters_json))
+await Deno.writeTextFile("data/oracle_params.json", JSON.stringify(parameters_json))
 
 console.log("Policy: "+ nft_policy)
 console.log("Name: "+ nft_name)

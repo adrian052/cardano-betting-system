@@ -38,7 +38,7 @@ const owner_address = await lucid.wallet.address()
 
 
 //Getting credentials
-const parameters_json = JSON.parse(await Deno.readTextFile("data/" + asset_name + ".json"))
+const parameters_json = JSON.parse(await Deno.readTextFile("data/oracle_params.json"))
 const nft_policy = parameters_json.policy;
 const nft_name = parameters_json.asset_name;
 const pkh = parameters_json.public_key_hash;
