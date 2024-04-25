@@ -38,17 +38,20 @@ export async function query_oracle(){
   }
   
   const datum: Constr<Constr<unknown>> = await lucid.datumOf(oracleUTxO) as Constr<Constr<unknown>>;
+  var value; 
   if(datum.index == 0){
     console.log("Datum: ");
     if(datum.fields[0].index == 0){
       console.log("Fighter1");
-      return new Constr (0,[])
+      value =  new Constr (0,[])
     }else{
       console.log("Fighter2");
-      return new Constr (1,[])
+      value = new Constr (1,[])
     }
   }else{
     console.log("Datum: Waiting")
-    return new Constr (2,[])
+    value = new Constr (2,[])
   }
+
+  return {oracle_winner: value, oracleUTxO:oracleUTxO}
 }

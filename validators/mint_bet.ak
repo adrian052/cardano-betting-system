@@ -1,28 +1,17 @@
-use aiken/dict.{to_list}
+use aiken/dict.{size, to_list}
 use aiken/hash.{Blake2b_224, Hash}
 use aiken/interval.{Finite}
-use aiken/list.{filter, find, foldl, has, length, map}
+use aiken/list.{filter, find, has, map}
 use aiken/time.{PosixTime}
 use aiken/transaction.{
   DatumHash, InlineDatum, Input, Mint, NoDatum, ScriptContext, Spend,
   Transaction,
 }
-use aiken/transaction/credential.{
-  Script, ScriptCredential, VerificationKey, from_script,
-}
+use aiken/transaction/credential.{Script, ScriptCredential, from_script}
 use aiken/transaction/value.{
   AssetName, from_minted_value, lovelace_of, policies, tokens,
 }
-use utils.{Winner, after_deadline}
-
-type PKH =
-  Hash<Blake2b_224, VerificationKey>
-
-type MintDatum {
-  winner: Winner,
-  bet: Int,
-  address: PKH,
-}
+use utils.{MintDatum, Winner, after_deadline, split_correctly, winners_rewards}
 
 type MatchParams {
   fighter1: String,
@@ -38,8 +27,27 @@ validator(
   fn mint_bet(_d: Void, _r: Void, ctx: ScriptContext) {
     when ctx.purpose is {
       Mint(policy_id) -> validate_mint(ctx, policy_id, match_params, token_name)
-      Spend(_) ->
-        after_deadline(ctx.transaction.validity_range, match_params.deadline)
+      Spend(_) -> {
+        expect Some(oracle_winner) =
+          get_oracle_datum(ctx.transaction.reference_inputs, oracle_validator)
+        let inputs =
+          filter(
+            ctx.transaction.inputs,
+            fn(i) {
+              let input_address = i.output.address
+              let policies = policies(i.output.value)
+              let addresses =
+                map(policies, fn(policy_id) { from_script(policy_id) })
+              has(addresses, input_address)
+            },
+          )
+        split_correctly(inputs, ctx.transaction.outputs, oracle_winner) && size(
+          winners_rewards(inputs, oracle_winner),
+        ) == 1 && after_deadline(
+          ctx.transaction.validity_range,
+          match_params.deadline,
+        )
+      }
       _ -> False
     }
   }
@@ -85,4 +93,27 @@ fn validate_mint(
       }
     }
   is_valid_output_datum && (1 == amount)? && (asset_name == token_name)?
+}
+
+fn get_oracle_datum(
+  reference_inputs: List<Input>,
+  oracle_val: Hash<Blake2b_224, Script>,
+) -> Option<Winner> {
+  expect [oracle_input] =
+    list.filter(
+      reference_inputs,
+      fn(i) {
+        when i.output.address.payment_credential is {
+          ScriptCredential(script_hash) -> script_hash == oracle_val
+          _ -> False
+        }
+      },
+    )
+  expect oracle_winner: Option<Winner> =
+    when oracle_input.output.datum is {
+      NoDatum -> fail @"Could not find oracles datum"
+      DatumHash(_datum_hash) -> fail @"Oracle's datum must be inlined"
+      InlineDatum(datum) -> datum
+    }
+  oracle_winner
 }

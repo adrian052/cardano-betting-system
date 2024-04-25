@@ -1,20 +1,29 @@
-use aiken/bytearray
-use aiken/dict.{Dict}
+use aiken/bytearray.{concat, from_string}
+use aiken/dict.{Dict, foldl}
 use aiken/hash.{Blake2b_224, Hash}
 use aiken/interval.{Finite, Interval, IntervalBound, PositiveInfinity}
-use aiken/list.{foldl}
+use aiken/list as aiken_list
+use aiken/string.{from_int}
 use aiken/time.{PosixTime}
 use aiken/transaction.{
   InlineDatum, Input, NoDatum, Output, OutputReference, TransactionId,
   ValidityRange,
 }
 use aiken/transaction/credential.{
-  ScriptCredential, VerificationKey, VerificationKeyCredential,
-  from_verification_key,
+  VerificationKey, VerificationKeyCredential, from_verification_key,
 }
 use aiken/transaction/value.{from_asset, from_lovelace, lovelace_of}
 
 // ////////////////////////Public types and functions////////////////////
+
+pub type PKH =
+  Hash<Blake2b_224, VerificationKey>
+
+pub type MintDatum {
+  winner: Winner,
+  bet: Int,
+  address: PKH,
+}
 
 pub type Winner {
   Fighter1
@@ -34,33 +43,30 @@ pub fn split_correctly(
   winner: Winner,
 ) -> Bool {
   let expected_output = winners_rewards(inputs, winner)
+  let actual_outputs = actual_outputs(outputs)
   foldl(
-    outputs,
+    expected_output,
     True,
-    fn(output, acc) {
-      expect ScriptCredential(output_hash) = output.address.payment_credential
-      let reward = lovelace_of(output.value)
-      expect Some(expected_reward) = dict.get(expected_output, output_hash)
-      acc && expected_reward == reward
+    fn(key, value, acc) {
+      let concat_output = concat(key, from_string(from_int(value)))
+      aiken_list.has(actual_outputs, concat_output) && acc
     },
   )
 }
 
 pub fn winners_bet(inputs: List<Input>, winner: Winner) {
-  lovelace_of(
-    foldl(
-      inputs,
-      value.zero(),
-      fn(n, acc) {
-        expect InlineDatum(bet_inline) = n.output.datum
-        expect bet: Winner = bet_inline
-        if bet == winner {
-          value.merge(n.output.value, acc)
-        } else {
-          acc
-        }
-      },
-    ),
+  aiken_list.foldl(
+    inputs,
+    0,
+    fn(in, acc) {
+      expect InlineDatum(d) = in.output.datum
+      expect mint_datum: MintDatum = d
+      if mint_datum.winner == winner {
+        acc + mint_datum.bet
+      } else {
+        acc
+      }
+    },
   )
 }
 
@@ -70,19 +76,20 @@ pub fn winners_rewards(
 ) -> Dict<Hash<Blake2b_224, VerificationKey>, Int> {
   let total_bet_value = total_bet(inputs)
   let winners_bet_value = winners_bet(inputs, winner)
-  foldl(
+  aiken_list.foldl(
     inputs,
     dict.new(),
-    fn(n, acc) {
-      expect VerificationKeyCredential(verification_hash) =
-        n.output.address.payment_credential
-      expect InlineDatum(bet_inline) = n.output.datum
-      expect bet: Winner = bet_inline
-      if winner == bet {
+    fn(in, acc) {
+      expect InlineDatum(d) = in.output.datum
+      expect mint_datum: MintDatum = d
+      let verification_hash = mint_datum.address
+      let winner_datum = mint_datum.winner
+      let money = mint_datum.bet
+      if winner == winner_datum {
         dict.insert_with(
           acc,
           verification_hash,
-          lovelace_of(n.output.value) * total_bet_value / winners_bet_value,
+          money * total_bet_value / winners_bet_value,
           sum,
           bytearray.compare,
         )
@@ -93,9 +100,30 @@ pub fn winners_rewards(
   )
 }
 
+pub fn actual_outputs(outputs: List<Output>) {
+  aiken_list.foldl(
+    outputs,
+    [],
+    fn(out, acc) {
+      expect VerificationKeyCredential(pkh) = out.address.payment_credential
+      let money = out.value
+      aiken_list.push(
+        acc,
+        concat(pkh, from_string(from_int(lovelace_of(money)))),
+      )
+    },
+  )
+}
+
 pub fn total_bet(inputs: List<Input>) -> Int {
-  lovelace_of(
-    foldl(inputs, value.zero(), fn(n, acc) { value.merge(n.output.value, acc) }),
+  aiken_list.foldl(
+    inputs,
+    0,
+    fn(in, acc) {
+      expect InlineDatum(d) = in.output.datum
+      expect mint_datum: MintDatum = d
+      acc + mint_datum.bet
+    },
   )
 }
 

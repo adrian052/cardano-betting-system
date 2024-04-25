@@ -30,7 +30,7 @@ async function main() {
 
     //Getting oracle information
     const oracle_json = await JSON.parse(await Deno.readTextFile(oracle_params));
-    const oracle_pkh = oracle_json.public_key_hash
+    const oracle_script_hash = oracle_json.script_hash
 
     //Getting utxo information
     const utxos = await lucid.utxosAt(gambler_address);
@@ -41,7 +41,7 @@ async function main() {
     const plutusJSON = JSON.parse(await Deno.readTextFile("plutus.json"));
     //Get mint variables
     const match_json = JSON.parse(await Deno.readTextFile(minting_json));
-    const mint_params = getPolicyParams(match_json.Figther1,match_json.Fighter2,match_json.PosixTime,assetName,oracle_pkh);
+    const mint_params = getPolicyParams(match_json.Figther1,match_json.Fighter2,match_json.PosixTime,assetName,oracle_script_hash);
     const minting_policy = getPolicy(plutusJSON, mint_params, "mint_bet.mint_bet");
     const minting_address = lucid.utils.validatorToAddress(minting_policy);
     const minting_policy_id = lucid.utils.mintingPolicyToId(minting_policy);
@@ -63,6 +63,7 @@ async function main() {
     //Make transaction
     const txId = await mintNFTAndPay(utxos,minting_policy, token, datum, minting_address, txValidTo,bet);
     console.log("Transactions submitted with id: ", txId);
+    
 }
 
 main();

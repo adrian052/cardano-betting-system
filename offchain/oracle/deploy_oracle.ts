@@ -8,6 +8,7 @@ import { Waiting} from '../MatchStatus.ts';
 
 //Getting parameters from match params
 import file from "../../data/match_params.json" with { type: "json" };
+import { LegacyDaedalusPrivateKey } from "../lucid/src/core/libs/cardano_multiplatform_lib/nodejs/cardano_multiplatform_lib.generated.js";
 
 const owner = file.Owner;
 const posixtime = file.PosixTime;
@@ -48,15 +49,10 @@ const policy: SpendingValidator = {
 
 const nft_policy = lucid.utils.mintingPolicyToId(policy);
 const nft_name = fromText(asset_name)
-const token = nft_policy + nft_name
+const token = nft_policy + nft_name 
 
-const parameters_json = {
-    policy: nft_policy,
-    asset_name: nft_name,
-    public_key_hash: pkh
-}
 
-await Deno.writeTextFile("data/oracle_params.json", JSON.stringify(parameters_json))
+
 
 console.log("Policy: "+ nft_policy)
 console.log("Name: "+ nft_name)
@@ -73,11 +69,19 @@ const validator: SpendingValidator = {
     plutusJSON.validators.filter((val: any) => val.title == "oracle.oracle")[0].compiledCode,[parameter]
   )
 };
+const script_hash = lucid.utils.validatorToScriptHash(validator);
 
 const oracle_addr = lucid.utils.validatorToAddress(validator);
 console.log("Oracle address: ",oracle_addr);
 
+const parameters_json = {
+  policy: nft_policy,
+  asset_name: nft_name,
+  public_key_hash: pkh,
+  script_hash: script_hash
+}
 
+await Deno.writeTextFile("data/oracle_params.json", JSON.stringify(parameters_json))
 const match_status = Waiting
 
 const tx = await lucid

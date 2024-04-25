@@ -1,7 +1,7 @@
 import { lucid } from "../instance-lucid.ts";
 import { getPolicyParams } from "../lib/utils.ts";
-import {getUserAddress,getPolicy, getDatum, mintNFTAndPay } from "../lib/utils.ts";
-import { Constr, Data, datumJsonToCbor, fromText } from "../lucid/mod.ts";
+import {getUserAddress,getPolicy } from "../lib/utils.ts";
+import { Constr, Data } from "../lucid/mod.ts";
 import { PrivateKey } from "../lucid/src/core/libs/cardano_multiplatform_lib/cardano_multiplatform_lib.generated.js";
 import {query_oracle} from "../oracle/query_oracle.ts"
 
@@ -20,11 +20,11 @@ async function main() {
     const plutusJSON = JSON.parse(await Deno.readTextFile("plutus.json"));
     //Getting oracle information
     const oracle_json = await JSON.parse(await Deno.readTextFile("./data/oracle_params.json"));
-    const oracle_pkh = oracle_json.public_key_hash
+    const oracle_script_hash = oracle_json.script_hash
 
     //Get mint variables
     const match_json = JSON.parse(await Deno.readTextFile("./data/match_params.json"));
-    const mint_params = getPolicyParams(match_json.Figther1,match_json.Fighter2,match_json.PosixTime,assetName,oracle_pkh);
+    const mint_params = getPolicyParams(match_json.Figther1,match_json.Fighter2,match_json.PosixTime,assetName,oracle_script_hash);
     const minting_policy = getPolicy(plutusJSON, mint_params, "mint_bet.mint_bet");
     const minting_address = lucid.utils.validatorToAddress(minting_policy);
     //const minting_policy_id = lucid.utils.mintingPolicyToId(minting_policy);
@@ -36,7 +36,7 @@ async function main() {
 
     console.log(match_json.PosixTime);
     console.log(now-30000)
-    const oracle_winner = await query_oracle();
+    const {oracle_winner, oracleUTxO} = await query_oracle();
 
 
     var total_bet = 0n;
@@ -54,7 +54,14 @@ async function main() {
         total_bet+=datum.fields[1];
         if (winner.index===oracle_winner.index) {
             winners_total_bet+=datum.fields[1]
-            winners_bet.set(address,datum.fields[1]);
+            var bet;
+            if(winners_bet.get(address)==undefined){
+                bet = 0n;
+            }else{
+                bet = winners_bet.get(address);
+            }
+
+            winners_bet.set(address,bet+datum.fields[1]);
         }
         
     }
@@ -71,20 +78,22 @@ async function main() {
     console.log("Winners rewards")
     console.log(winners_rewards);
 
+    console.log(lucid.datumOf(oracleUTxO))
     
     var tx = lucid.newTx();
     for (let entry of winners_rewards.entries()) {
         tx = tx.payToAddress(entry[0],{lovelace: entry[1]})
     }
     tx = tx.collectFrom(utxos,Data.void())
+            .validFrom(now-30000)
             .attachSpendingValidator(minting_policy)
-            .validFrom(now-30000);
+            .readFrom([oracleUTxO]);
     const completed_tx = await tx.complete()
     
 
     const signedTx = await completed_tx.sign().complete();
     const output = await signedTx.submit();
-    console.log(output);
+    console.log("Transactions submitted with id: ",output);
 
 
 }

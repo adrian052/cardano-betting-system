@@ -21,8 +21,8 @@ function getOutRef(utxo: UTxO) {
     return new Constr(0, [new Constr(0, [utxo.txHash]), BigInt(utxo.outputIndex)]);
 }
 
-function getPolicyParams( fighter1: string, fighter2:string,deadline:number, assetName: string,oracle_pkh:string){
-    return [new Constr(0, [fromText(fighter1),fromText(fighter2),BigInt(deadline)]),fromText(assetName),fromText(oracle_pkh)]
+function getPolicyParams( fighter1: string, fighter2:string,deadline:number, assetName: string,oracle_script_hash:string){
+    return [new Constr(0, [fromText(fighter1),fromText(fighter2),BigInt(deadline)]),fromText(assetName),oracle_script_hash]
 }
 
 function getPolicy(plutusJSON : any, params : any, title: string) {
