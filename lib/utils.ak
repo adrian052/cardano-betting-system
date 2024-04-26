@@ -6,11 +6,12 @@ use aiken/list as aiken_list
 use aiken/string.{from_int}
 use aiken/time.{PosixTime}
 use aiken/transaction.{
-  InlineDatum, Input, NoDatum, Output, OutputReference, TransactionId,
+  DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference, TransactionId,
   ValidityRange,
 }
 use aiken/transaction/credential.{
-  VerificationKey, VerificationKeyCredential, from_verification_key,
+  Script, ScriptCredential, VerificationKey, VerificationKeyCredential,
+  from_verification_key,
 }
 use aiken/transaction/value.{from_asset, from_lovelace, lovelace_of}
 
@@ -33,6 +34,13 @@ pub type Winner {
 pub fn after_deadline(range: ValidityRange, deadline: PosixTime) -> Bool {
   when range.lower_bound.bound_type is {
     Finite(tx_earliest_time) -> deadline <= tx_earliest_time
+    _ -> False
+  }
+}
+
+pub fn before_deadline(range: ValidityRange, deadline: PosixTime) -> Bool {
+  when range.upper_bound.bound_type is {
+    Finite(tx_latest_time) -> tx_latest_time <= deadline
     _ -> False
   }
 }
@@ -89,7 +97,7 @@ pub fn winners_rewards(
         dict.insert_with(
           acc,
           verification_hash,
-          money * total_bet_value / winners_bet_value,
+          money * total_bet_value * 9 / ( winners_bet_value * 10 ),
           sum,
           bytearray.compare,
         )
@@ -125,6 +133,29 @@ pub fn total_bet(inputs: List<Input>) -> Int {
       acc + mint_datum.bet
     },
   )
+}
+
+pub fn get_oracle_datum(
+  reference_inputs: List<Input>,
+  oracle_val: Hash<Blake2b_224, Script>,
+) -> Option<Winner> {
+  expect [oracle_input] =
+    aiken_list.filter(
+      reference_inputs,
+      fn(i) {
+        when i.output.address.payment_credential is {
+          ScriptCredential(script_hash) -> script_hash == oracle_val
+          _ -> False
+        }
+      },
+    )
+  expect oracle_winner: Option<Winner> =
+    when oracle_input.output.datum is {
+      NoDatum -> fail @"Could not find oracles datum"
+      DatumHash(_datum_hash) -> fail @"Oracle's datum must be inlined"
+      InlineDatum(datum) -> datum
+    }
+  oracle_winner
 }
 
 pub fn sum(_k, a, b) {

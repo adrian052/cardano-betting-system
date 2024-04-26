@@ -12,7 +12,7 @@ const json = {
   "Owner": owner
 };
 
-const filePath = "data/match_params.json";
+const filePath = "data/match.json";
 
 fs.writeFileSync(filePath, JSON.stringify(json, null, 2));
 

@@ -1,15 +1,9 @@
 import { lucid } from "../instance-lucid.ts";
-import { Constr, Data, applyParamsToScript, fromText } from "../lucid/mod.ts";
+import { Constr, applyParamsToScript } from "../lucid/mod.ts";
 import { SpendingValidator } from "../lucid/mod.ts";
-import file from "../../data/match_params.json" with { type: "json" };
 
-export async function query_oracle(){
-  const posixtime = file.PosixTime;
-  const fighter1 = file.Figther1; 
-  const fighter2 = file.Figther2;
-  const asset_name = fighter1+"-"+fighter2+"-"+posixtime 
-  
-  const parameters_json = JSON.parse(await Deno.readTextFile("data/oracle_params.json"))
+export async function query_oracle(oracle_path:string){
+  const parameters_json = JSON.parse(await Deno.readTextFile(oracle_path))
   const nft_policy = parameters_json.policy;
   const nft_name = parameters_json.asset_name;
   const pkh = parameters_json.public_key_hash;
@@ -40,12 +34,11 @@ export async function query_oracle(){
   const datum: Constr<Constr<unknown>> = await lucid.datumOf(oracleUTxO) as Constr<Constr<unknown>>;
   var value; 
   if(datum.index == 0){
-    console.log("Datum: ");
     if(datum.fields[0].index == 0){
-      console.log("Fighter1");
+      console.log("Winner: Fighter1");
       value =  new Constr (0,[])
     }else{
-      console.log("Fighter2");
+      console.log("Winner: Fighter2");
       value = new Constr (1,[])
     }
   }else{

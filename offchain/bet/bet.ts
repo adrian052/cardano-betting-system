@@ -1,13 +1,13 @@
 import { lucid } from "../instance-lucid.ts";
-import { getPolicyParams } from "../lib/utils.ts";
-import {getUserAddress,getPolicy, getDatum, mintNFTAndPay } from "../lib/utils.ts";
+import { getPolicyParams, getPolicyParams2 } from "../utils.ts";
+import {getUserAddress,getPolicy, getDatum, mintNFTAndPay } from "../utils.ts";
 import { Constr, fromText } from "../lucid/mod.ts";
 import { PrivateKey } from "../lucid/src/core/libs/cardano_multiplatform_lib/cardano_multiplatform_lib.generated.js";
 
 async function main() {
-    const minting_json = Deno.args[0];
-    const user_path = Deno.args[1]
-    const oracle_params = Deno.args[2]
+    const match_path = Deno.args[0];
+    const oracle_path = Deno.args[1]
+    const user_path = Deno.args[2]
     const bet = Number(Deno.args[3])
     const winner = Deno.args[4];
     
@@ -29,7 +29,7 @@ async function main() {
     console.log("Gambler address: " + gambler_address);
 
     //Getting oracle information
-    const oracle_json = await JSON.parse(await Deno.readTextFile(oracle_params));
+    const oracle_json = await JSON.parse(await Deno.readTextFile(oracle_path));
     const oracle_script_hash = oracle_json.script_hash
 
     //Getting utxo information
@@ -40,13 +40,20 @@ async function main() {
     const assetName = "Token1";
     const plutusJSON = JSON.parse(await Deno.readTextFile("plutus.json"));
     //Get mint variables
-    const match_json = JSON.parse(await Deno.readTextFile(minting_json));
-    const mint_params = getPolicyParams(match_json.Figther1,match_json.Fighter2,match_json.PosixTime,assetName,oracle_script_hash);
+    const match_json = JSON.parse(await Deno.readTextFile(match_path));
+    const mint_params = getPolicyParams2(match_json.Figther1,match_json.Fighter2,match_json.PosixTime,assetName,oracle_script_hash);
     const minting_policy = getPolicy(plutusJSON, mint_params, "mint_bet.mint_bet");
     const minting_address = lucid.utils.validatorToAddress(minting_policy);
     const minting_policy_id = lucid.utils.mintingPolicyToId(minting_policy);
+    const minting_policy_hash = lucid.utils.validatorToScriptHash(minting_policy)
     console.log("Minting address: ", minting_address);
 
+    const mint_params2 = getPolicyParams(match_json.Figther1,match_json.Fighter2,match_json.PosixTime,assetName,oracle_script_hash);
+    const minting_policy2 = getPolicy(plutusJSON, mint_params2, "mint_bet.mint_bet");
+    const minting_address2 = lucid.utils.validatorToAddress(minting_policy2);
+    const minting_policy_hash2 = lucid.utils.validatorToScriptHash(minting_policy2)
+    const minting_policy_id2 = lucid.utils.mintingPolicyToId(minting_policy2)
+    console.log("Spending address: ", minting_address2);
     //Making the datum
     const datum = getDatum(winner_datum, bet,gambler_pkh);
 
@@ -61,8 +68,9 @@ async function main() {
     console.log("Match posixtime: ",match_json.PosixTime);
     
     //Make transaction
-    const txId = await mintNFTAndPay(utxos,minting_policy, token, datum, minting_address, txValidTo,bet);
+    const txId = await mintNFTAndPay(utxos,minting_policy, token, datum, minting_address2, txValidTo,bet,minting_policy_id);
     console.log("Transactions submitted with id: ", txId);
+    console.log("Bet made successfully. \u2705")
     
 }
 

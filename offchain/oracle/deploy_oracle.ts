@@ -2,18 +2,16 @@ import { lucid } from "../instance-lucid.ts";
 import { Constr, Data, applyParamsToScript, fromText } from "../lucid/mod.ts";
 import { SpendingValidator } from "../lucid/mod.ts";
 import { PrivateKey } from "../lucid/src/core/libs/cardano_multiplatform_lib/cardano_multiplatform_lib.generated.js";
-import { Waiting} from '../MatchStatus.ts';
-
-
-
+import { Waiting} from '../match_status.ts';
 //Getting parameters from match params
-import file from "../../data/match_params.json" with { type: "json" };
-import { LegacyDaedalusPrivateKey } from "../lucid/src/core/libs/cardano_multiplatform_lib/nodejs/cardano_multiplatform_lib.generated.js";
 
-const owner = file.Owner;
-const posixtime = file.PosixTime;
-const fighter1 = file.Figther1; 
-const fighter2 = file.Figther2;
+const match_path = Deno.args[0];
+const match = await JSON.parse(await Deno.readTextFile(match_path));
+
+const owner = match.Owner;
+const posixtime = match.PosixTime;
+const fighter1 = match.Figther1; 
+const fighter2 = match.Figther2;
 const asset_name = fighter1+"-"+fighter2+"-"+posixtime 
 console.log(asset_name)
 //Getting credentials
@@ -81,7 +79,7 @@ const parameters_json = {
   script_hash: script_hash
 }
 
-await Deno.writeTextFile("data/oracle_params.json", JSON.stringify(parameters_json))
+await Deno.writeTextFile("data/oracle.json", JSON.stringify(parameters_json))
 const match_status = Waiting
 
 const tx = await lucid
@@ -95,5 +93,6 @@ const signedTx = await tx.sign().complete();
 
 const txId = await signedTx.submit();
 console.log("Transactions submited with id: ", txId);
+console.log("Successful deployment \u2705")
 
 
